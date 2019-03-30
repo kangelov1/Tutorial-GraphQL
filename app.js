@@ -9,9 +9,32 @@ const bcrypt = require('bcryptjs')
 
 const app = express()
 
-const events = []
-
 app.use(bodyParser.json())
+
+const events = (eventIds) =>{
+        //find events with id from ids list
+        return Event.find({_id:{$in:eventIds}})
+                .then(events=>{
+                    return events.map(event =>{
+                        return {...event._doc,
+                                _id:event.id,
+                                creator:user.bind(this,event.creator)
+                               }
+                    })
+                })
+                .catch(err=>{throw err})
+    }
+
+const user = (userId) => {
+    return User.findById(userId)
+            .then(user=>{
+                return {...user._doc,
+                        _id:user.id,
+                        createdEvents:events.bind(this,user._doc.createdEvents)
+                       }
+            })
+            .catch(err=>{throw err})
+}
 
 app.use(
   '/graphql',
@@ -55,10 +78,10 @@ app.use(
     `),
     rootValue: {
       events: () => {
-        return Event.find().populate('creator')
+        return Event.find()
           .then(events => {
             return events.map(event => {
-              return { ...event._doc, _id: event.id,creator:{...event._doc.creator._doc,_id:event._doc.creator.id} };
+              return { ...event._doc, _id: event.id,creator:user.bind(this,event._doc.creator) };
             });
           })
           .catch(err => {
